@@ -9,7 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { langOf, tips, tr, type Lang } from './text';
-import { DISCORD_APP_ID, DiscordPresence, type Activity } from './discord';
+import { DISCORD_APP_ID, DiscordPresence, remoteAppId, type Activity } from './discord';
 import { startUpdater } from './updater';
 
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -295,12 +295,13 @@ async function showOffline(w: BrowserWindow, why: 'off' | 'crash') {
 
 // ---------------- loading screen (static/splash.html) ----------------
 /**
- * A local page over the game, from the first frame until the game's main menu is up: one of the illustrations
+ * A local page over the game, from the first frame until the game's main menu is up: one of the in-game captures
  * (static/splash/, a different one each launch), the wordmark, tips and a bar that follows the real load (connecting,
  * the page, then the game's own «Cargando Pokédex…» bar, read from its DOM). Not in the self-test (it screenshots the game).
  */
 const SPLASH = !SELFTEST || flag('splash');
-const SPLASH_ART = ['forest', 'desert', 'coast', 'cave'];
+/** Captures of the game itself (art/source/desktop/captures, docs/ART.md): the four legendary shrines and a horde. */
+const SPLASH_ART = ['forest', 'coast', 'glacier', 'desert', 'horde'];
 let splash: { view: WebContentsView; lang: Lang; p: number; fit: () => void; since: number } | null = null;
 
 function showSplash(w: BrowserWindow, lang: Lang, onReady?: () => void) {
@@ -597,6 +598,7 @@ app.whenReady().then(() => {
   if (!SELFTEST) {
     presence.set(baseActivity(langOf(app.getPreferredSystemLanguages()[0] ?? app.getLocale())));
     presence.enable(readCfg().discord);
+    if (!process.env.POKEBONK_DISCORD_ID) void remoteAppId().then((id) => { if (id) presence.useApp(id); });
     startUpdater(() => win, () => { quitting = true; });
   }
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });

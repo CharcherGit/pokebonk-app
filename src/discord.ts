@@ -9,8 +9,20 @@
 import { connect, type Socket } from 'node:net';
 import { join } from 'node:path';
 
-/** «PokéBonk» application on discord.com/developers (its name is the «Jugando a …» line). */
+/**
+ * The Discord application whose name is the «Jugando a …» line. Fallback: the server's bot («PokéBonk Bot»). The real one, «PokéBonk»,
+ * is read at launch from `client.json` of the downloads repo (`remoteAppId`), so it can change without a new client.
+ */
 export const DISCORD_APP_ID = process.env.POKEBONK_DISCORD_ID ?? '1559293304611410001';
+const REMOTE = 'https://raw.githubusercontent.com/CharcherGit/pokebonk-app/main/client.json';
+/** `{ "discordAppId": "…" }` from the downloads repo, or null (no network, GitHub blocked: the fallback stays). */
+export async function remoteAppId(): Promise<string | null> {
+  try {
+    const r = await fetch(REMOTE, { signal: AbortSignal.timeout(6000), cache: 'no-store' });
+    const id = r.ok ? ((await r.json()) as { discordAppId?: unknown }).discordAppId : null;
+    return typeof id === 'string' && /^\d{17,20}$/.test(id) ? id : null;
+  } catch { return null; }
+}
 
 export type Activity = {
   details?: string;
@@ -56,8 +68,18 @@ export class DiscordPresence {
   private lastSent = 0;
   private want: Activity | null = null;
   private buf = Buffer.alloc(0);
+  /** Bumped on every close: a connection attempt from before it is dropped when it lands. */
+  private gen = 0;
+  private connecting = false;
 
   constructor(private appId: string) {}
+
+  /** Another application (remoteAppId): reconnects with it if presence is on. */
+  useApp(id: string) {
+    if (id === this.appId) return;
+    this.appId = id;
+    if (this.on) { this.close(); this.connect(); }
+  }
 
   /** Turns presence on or off (Ajustes → Pantalla → «Mostrar en Discord»). Off clears it at once. */
   enable(on: boolean) {
@@ -105,15 +127,18 @@ export class DiscordPresence {
   }
 
   private connect() {
-    if (!this.on || this.sock) return;
-    const paths = sockets();
+    if (!this.on || this.sock || this.connecting) return;
+    const paths = sockets(), gen = this.gen;
+    this.connecting = true;
     const tryAt = (i: number) => {
-      if (!this.on) return;
-      if (i >= paths.length) return this.later();
+      if (!this.on || gen !== this.gen) { this.connecting = false; return; }
+      if (i >= paths.length) { this.connecting = false; return this.later(); }
       const s = connect(paths[i]);
       let opened = false;
       s.once('connect', () => {
         opened = true;
+        this.connecting = false;
+        if (gen !== this.gen || !this.on) { s.destroy(); return; }
         this.sock = s;
         this.buf = Buffer.alloc(0);
         s.on('data', (d) => this.read(Buffer.from(d)));
@@ -133,6 +158,7 @@ export class DiscordPresence {
       if (this.buf.length < 8 + len) return;
       let msg: { cmd?: string; evt?: string } = {};
       try { msg = JSON.parse(this.buf.subarray(8, 8 + len).toString('utf8')); } catch { /* ignore a bad frame */ }
+      if (process.env.POKEBONK_RPC_DEBUG) console.log('[discord]', JSON.stringify(msg).slice(0, 400));
       this.buf = this.buf.subarray(8 + len);
       if (op === OP_PING) this.send(OP_PONG, msg);
       else if (op === OP_CLOSE) { this.close(true); return; }
@@ -143,6 +169,8 @@ export class DiscordPresence {
   /** Drops the connection; with `again`, tries again later (Discord restarted or was closed). */
   private close(again = false) {
     this.ready = false;
+    this.gen++;
+    this.connecting = false;
     if (this.sendTimer) { clearTimeout(this.sendTimer); this.sendTimer = null; }
     const s = this.sock;
     this.sock = null;
