@@ -1,0 +1,77 @@
+# Cliente de escritorio de PokéBonk (docs/DESKTOP.md). `npm run dist:win|mac|linux` en desktop/; salida en desktop/release/.
+appId: com.pokebonk.desktop
+productName: PokéBonk
+# Nombre del .exe y del binario sin tilde (rutas, registro y AppImage).
+executableName: PokeBonk
+artifactName: PokeBonk-${version}-${os}-${arch}.${ext}
+copyright: Fan-game no oficial, gratuito y sin ánimo de lucro. Pokémon es de Nintendo, Creatures y GAME FREAK.
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/main.js
+  - out/preload.js
+  - out/text.js
+  - out/discord.js
+  - out/updater.js
+  - static/**
+  - build/icon.png
+  - package.json
+# Automatic updates (src/updater.ts, docs/DESKTOP.md): electron-updater reads latest.yml / latest-linux.yml from the latest release
+# of the public downloads repo. `--publish never` still writes app-update.yml into the app and the .yml files next to the installers.
+publish:
+  provider: github
+  owner: CharcherGit
+  repo: pokebonk-app
+  releaseType: release
+asar: true
+compression: maximum
+# Solo el idioma de cada jugador cambia los textos de Chromium (menús contextuales): el resto de locales sobra.
+electronLanguages: [es, en-US, pt-BR, fr, ja, zh-CN, zh-TW, ko, ru]
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  icon: build/icon.png
+nsis:
+  # Assisted installer (next client version): it lets the player choose the folder (reports 17366, 17438: «why C: by default»),
+  # always makes the desktop shortcut and starts the game at the end. Still per user (no administrator).
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  runAfterFinish: true
+  deleteAppDataOnUninstall: false
+  shortcutName: PokéBonk
+  artifactName: PokeBonk-${version}-win-setup.${ext}
+portable:
+  artifactName: PokeBonk-${version}-win-portable.${ext}
+mac:
+  target:
+    - target: dmg
+      arch: [universal]
+    - target: zip
+      arch: [universal]
+  category: public.app-category.games
+  icon: build/icon.png
+  # Sin cuenta de Apple Developer no hay notarización, pero sí firma ad-hoc («-»): sin ninguna firma, el Mac con
+  # Apple Silicon dice que la app «está dañada» y no deja abrirla. Con la ad-hoc, la primera vez se abre desde
+  # Configuración → Privacidad y seguridad → «Abrir igualmente» (docs/DESKTOP.md).
+  identity: "-"
+  hardenedRuntime: false
+  gatekeeperAssess: false
+linux:
+  syncDesktopName: true
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  category: Game
+  icon: build/icon.png
+  maintainer: Charcher
+  synopsis: PokéBonk, survivor 3D (fan-game)
