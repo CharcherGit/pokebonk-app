@@ -58,6 +58,11 @@ mac:
       arch: [universal]
   category: public.app-category.games
   icon: build/icon.png
+  # The bundle and its helpers are built with productName=PokeBonk (ASCII, the `--mac` job of the workflow and `npm run dist:mac`):
+  # electron-builder writes the helper folders in NFD and CFBundleName in NFC, so with «é» Electron cannot find its helpers and
+  # the 1.4.0 crashed on launch (SIGTRAP, issue #5 of pokebonk-app). Finder and the Dock still show the accent.
+  extendInfo:
+    CFBundleDisplayName: PokéBonk
   # Sin cuenta de Apple Developer no hay notarización, pero sí firma ad-hoc («-»): sin ninguna firma, el Mac con
   # Apple Silicon dice que la app «está dañada» y no deja abrirla. Con la ad-hoc, la primera vez se abre desde
   # Configuración → Privacidad y seguridad → «Abrir igualmente» (docs/DESKTOP.md).

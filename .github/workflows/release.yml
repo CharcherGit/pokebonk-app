@@ -22,7 +22,8 @@ jobs:
           - os: windows-latest
             target: --win
           - os: macos-latest
-            target: --mac
+            # ASCII bundle name: with «é» the helpers end up NFD and CFBundleName NFC, and the app crashes on launch (issue #5).
+            target: --mac -c.productName=PokeBonk
           - os: ubuntu-latest
             target: --linux
     runs-on: ${{ matrix.os }}
@@ -38,6 +39,26 @@ jobs:
       - run: npx electron-builder ${{ matrix.target }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # The DMG as players get it: the helpers must have exactly the bytes of CFBundleName, and the app must start and quit by itself.
+      - name: Check the macOS app from the DMG
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          dmg=$(ls release/*.dmg | head -1)
+          hdiutil attach "$dmg" -mountpoint /tmp/pb -nobrowse -readonly
+          app=$(ls -d /tmp/pb/*.app | head -1)
+          name=$(plutil -extract CFBundleName raw -o - "$app/Contents/Info.plist")
+          exe=$(plutil -extract CFBundleExecutable raw -o - "$app/Contents/Info.plist")
+          ls "$app/Contents/Frameworks" | grep ' Helper' | sed 's/ Helper.*//' | sort -u > /tmp/helpers.txt
+          echo "CFBundleName: $name"; cat /tmp/helpers.txt
+          [ "$(cat /tmp/helpers.txt)" = "$name" ] || { echo "Helper names do not match CFBundleName"; exit 1; }
+          "$app/Contents/MacOS/$exe" --selftest=/tmp/st --selftest-wait=6000 &
+          pid=$!
+          for i in $(seq 1 90); do kill -0 $pid 2>/dev/null || break; sleep 1; done
+          kill -0 $pid 2>/dev/null && { kill $pid; echo "Self-test did not finish"; exit 1; }
+          wait $pid
+          cat /tmp/st/report.json
+          hdiutil detach /tmp/pb
       - uses: actions/upload-artifact@v4
         with:
           name: pokebonk-${{ runner.os }}
