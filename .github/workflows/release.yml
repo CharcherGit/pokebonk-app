@@ -52,7 +52,9 @@ jobs:
           ls "$app/Contents/Frameworks" | grep ' Helper' | sed 's/ Helper.*//' | sort -u > /tmp/helpers.txt
           echo "CFBundleName: $name"; cat /tmp/helpers.txt
           [ "$(cat /tmp/helpers.txt)" = "$name" ] || { echo "Helper names do not match CFBundleName"; exit 1; }
-          "$app/Contents/MacOS/$exe" --selftest=/tmp/st --selftest-wait=6000 &
+          # --use-mock-keychain: on the macOS 26 runner image (2026-11-23) Chromium waits for the login Keychain (cookie encryption), which a
+          # CI machine never unlocks; its network service died after ~75 s and the page never loaded, with 1.4.0's code too. Players have a Keychain.
+          "$app/Contents/MacOS/$exe" --use-mock-keychain --selftest=/tmp/st --selftest-wait=6000 &
           pid=$!
           for i in $(seq 1 90); do kill -0 $pid 2>/dev/null || break; sleep 1; done
           kill -0 $pid 2>/dev/null && { kill $pid; echo "Self-test did not finish"; exit 1; }
