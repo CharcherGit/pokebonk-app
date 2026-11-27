@@ -52,8 +52,7 @@ jobs:
           ls "$app/Contents/Frameworks" | grep ' Helper' | sed 's/ Helper.*//' | sort -u > /tmp/helpers.txt
           echo "CFBundleName: $name"; cat /tmp/helpers.txt
           [ "$(cat /tmp/helpers.txt)" = "$name" ] || { echo "Helper names do not match CFBundleName"; exit 1; }
-          curl -sS -o /dev/null -w "pokebonk.com from this runner: %{http_code} in %{time_total} s
-" https://pokebonk.com/ || true
+          curl -sS -o /dev/null -w "pokebonk.com from this runner: %{http_code} in %{time_total} s\n" https://pokebonk.com/ || true
           "$app/Contents/MacOS/$exe" --selftest=/tmp/st --selftest-wait=6000 &
           pid=$!
           for i in $(seq 1 90); do kill -0 $pid 2>/dev/null || break; sleep 1; done
