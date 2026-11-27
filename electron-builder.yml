@@ -80,3 +80,11 @@ linux:
   icon: build/icon.png
   maintainer: Charcher
   synopsis: PokéBonk, survivor 3D (fan-game)
+# The AppImage is never unpacked: its runtime decompresses the squashfs through FUSE, on one thread, at every launch. The legacy
+# toolset (0.0.0) turns the root `compression: maximum` into xz with 1 MiB blocks, and Chromium reads its 228 MB binary in small
+# random pieces, so every read that misses the runtime's small cache decompresses a whole 1 MiB block again: 62 s to the first
+# window on 1.4.0 (i5-13400F, 77 s of CPU in the runtime). The static runtime (electron-builder's beta toolset, runtime 20251108)
+# packs zstd in 128 KiB blocks, about 70 times cheaper per miss: 0.9-1.0 s, for an AppImage 17 % larger (102 to 120 MB). It
+# also links no libfuse2, which Ubuntu 22.04 and later no longer install. Other targets keep `maximum`.
+toolsets:
+  appimage: "1.0.3"
