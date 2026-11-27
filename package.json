@@ -11,6 +11,7 @@
   "desktopName": "pokebonk.desktop",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.cjs",
     "start": "npm run build && electron .",
     "dev": "npm run build && electron . --url=http://localhost:5173 --devtools",
     "selftest": "npm run build && electron . --selftest=out/selftest",

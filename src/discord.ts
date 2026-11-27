@@ -36,6 +36,8 @@ export type Activity = {
 };
 
 const OP_HANDSHAKE = 0, OP_FRAME = 1, OP_CLOSE = 2, OP_PING = 3, OP_PONG = 4;
+// Discord IPC messages are small JSON objects. Reject impossible lengths before buffering their bodies.
+const MAX_FRAME_BYTES = 1024 * 1024;
 
 function sockets(): string[] {
   const out: string[] = [];
@@ -155,6 +157,7 @@ export class DiscordPresence {
     this.buf = Buffer.concat([this.buf, d]);
     while (this.buf.length >= 8) {
       const op = this.buf.readInt32LE(0), len = this.buf.readInt32LE(4);
+      if (len < 0 || len > MAX_FRAME_BYTES) { this.close(true); return; }
       if (this.buf.length < 8 + len) return;
       let msg: { cmd?: string; evt?: string } = {};
       try { msg = JSON.parse(this.buf.subarray(8, 8 + len).toString('utf8')); } catch { /* ignore a bad frame */ }
@@ -169,6 +172,7 @@ export class DiscordPresence {
   /** Drops the connection; with `again`, tries again later (Discord restarted or was closed). */
   private close(again = false) {
     this.ready = false;
+    this.buf = Buffer.alloc(0);
     this.gen++;
     this.connecting = false;
     if (this.sendTimer) { clearTimeout(this.sendTimer); this.sendTimer = null; }
