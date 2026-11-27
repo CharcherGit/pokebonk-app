@@ -1,9 +1,9 @@
 /**
- * The few texts the desktop shell shows by itself (native dialogs and the offline page), in the game's ten languages.
+ * The few texts the desktop shell shows by itself (native dialogs and the offline page), in the game's eleven languages.
  * The game's own texts live in src/i18n; these are here because the shell runs before (and without) the game.
  */
-export type Lang = 'es' | 'en' | 'pt' | 'fr' | 'ja' | 'zh' | 'zht' | 'ko' | 'ru' | 'de';
-const LANGS: Lang[] = ['es', 'en', 'pt', 'fr', 'ja', 'zh', 'zht', 'ko', 'ru', 'de'];
+export type Lang = 'es' | 'en' | 'pt' | 'fr' | 'ja' | 'zh' | 'zht' | 'ko' | 'ru' | 'de' | 'it';
+const LANGS: Lang[] = ['es', 'en', 'pt', 'fr', 'ja', 'zh', 'zht', 'ko', 'ru', 'de', 'it'];
 
 /** Same rule as the game's detectLang (src/core/i18n.ts): Taiwan, Hong Kong, Macao and Hant read Traditional Chinese. */
 export function langOf(tag: string): Lang {
@@ -17,6 +17,7 @@ const T = {
     es: '¿Salir de PokéBonk?', en: 'Quit PokéBonk?', pt: 'Sair do PokéBonk?', fr: 'Quitter PokéBonk ?', ja: 'PokéBonkを終了しますか？',
     zh: '退出 PokéBonk？', zht: '退出 PokéBonk？', ko: 'PokéBonk를 종료할까요?', ru: 'Выйти из PokéBonk?',
     de: 'PokéBonk beenden?',
+    it: 'Uscire da PokéBonk?',
   },
   quitRun: {
     es: 'Tienes una partida en curso. Si sales ahora, se guarda lo conseguido hasta este momento, pero la partida termina. Para seguirla otro día, usa «Guardar y salir» en la pausa.',
@@ -29,17 +30,20 @@ const T = {
     ko: '진행 중인 판이 있습니다. 지금 나가면 지금까지 얻은 것은 저장되지만 판은 끝납니다. 다른 날 이어 하려면 일시정지 메뉴의 「저장하고 나가기」를 사용하세요.',
     ru: 'У вас идёт забег. Если выйти сейчас, всё полученное сохранится, но забег закончится. Чтобы продолжить его в другой день, используйте «Сохранить и выйти» в меню паузы.',
     de: 'Du hast eine laufende Runde. Wenn du jetzt beendest, bleibt alles Erreichte erhalten, aber die Runde endet. Um sie an einem anderen Tag fortzusetzen, nutze „Speichern und beenden“ im Pausenmenü.',
+    it: 'Hai una partita in corso. Se esci adesso, quello che hai ottenuto finora viene salvato, ma la partita finisce. Per continuarla un altro giorno, usa «Salva ed esci» nel menu di pausa.',
   },
-  quit: { es: 'Salir', en: 'Quit', pt: 'Sair', fr: 'Quitter', ja: '終了', zh: '退出', zht: '退出', ko: '나가기', ru: 'Выйти', de: 'Beenden' },
+  quit: { es: 'Salir', en: 'Quit', pt: 'Sair', fr: 'Quitter', ja: '終了', zh: '退出', zht: '退出', ko: '나가기', ru: 'Выйти', de: 'Beenden', it: 'Esci' },
   keep: {
     es: 'Seguir jugando', en: 'Keep playing', pt: 'Continuar jogando', fr: 'Continuer à jouer', ja: 'プレイを続ける',
     zh: '继续游戏', zht: '繼續遊戲', ko: '계속 플레이', ru: 'Продолжить игру',
     de: 'Weiterspielen',
+    it: 'Continua a giocare',
   },
   updateTitle: {
     es: 'Nueva versión del cliente', en: 'New client version', pt: 'Nova versão do cliente', fr: 'Nouvelle version du client', ja: 'クライアントの新しいバージョン',
     zh: '客户端有新版本', zht: '用戶端有新版本', ko: '새 클라이언트 버전', ru: 'Новая версия клиента',
     de: 'Neue Client-Version',
+    it: 'Nuova versione del client',
   },
   updateBody: {
     es: 'Hay una versión nueva del cliente de escritorio ({v}). El juego ya está al día; esta actualización mejora la ventana y el rendimiento.',
@@ -52,15 +56,17 @@ const T = {
     ko: '데스크톱 클라이언트의 새 버전({v})이 나왔습니다. 게임은 이미 최신입니다. 이 업데이트는 창과 성능을 개선합니다.',
     ru: 'Вышла новая версия клиента ({v}). Сама игра уже обновлена; это обновление улучшает окно и производительность.',
     de: 'Eine neue Version des Desktop-Clients ist da ({v}). Das Spiel selbst ist schon aktuell; dieses Update verbessert das Fenster und die Leistung.',
+    it: 'È disponibile una nuova versione del client desktop ({v}). Il gioco è già aggiornato; questo aggiornamento migliora la finestra e le prestazioni.',
   },
-  download: { es: 'Descargar', en: 'Download', pt: 'Baixar', fr: 'Télécharger', ja: 'ダウンロード', zh: '下载', zht: '下載', ko: '다운로드', ru: 'Скачать', de: 'Herunterladen' },
+  download: { es: 'Descargar', en: 'Download', pt: 'Baixar', fr: 'Télécharger', ja: 'ダウンロード', zh: '下载', zht: '下載', ko: '다운로드', ru: 'Скачать', de: 'Herunterladen', it: 'Scarica' },
   // Discord Rich Presence button that friends see on the player's profile (32 characters at most).
-  rpcPlay: { es: 'Jugar gratis', en: 'Play for free', pt: 'Jogar grátis', fr: 'Jouer gratuitement', ja: '無料でプレイ', zh: '免费游玩', zht: '免費遊玩', ko: '무료로 플레이', ru: 'Играть бесплатно', de: 'Kostenlos spielen' },
-  later: { es: 'Más tarde', en: 'Later', pt: 'Mais tarde', fr: 'Plus tard', ja: 'あとで', zh: '稍后', zht: '稍後', ko: '나중에', ru: 'Позже', de: 'Später' },
+  rpcPlay: { es: 'Jugar gratis', en: 'Play for free', pt: 'Jogar grátis', fr: 'Jouer gratuitement', ja: '無料でプレイ', zh: '免费游玩', zht: '免費遊玩', ko: '무료로 플레이', ru: 'Играть бесплатно', de: 'Kostenlos spielen', it: 'Gioca gratis' },
+  later: { es: 'Más tarde', en: 'Later', pt: 'Mais tarde', fr: 'Plus tard', ja: 'あとで', zh: '稍后', zht: '稍後', ko: '나중에', ru: 'Позже', de: 'Später', it: 'Più tardi' },
   offTitle: {
     es: 'No podemos conectar con PokéBonk', en: "We can't reach PokéBonk", pt: 'Não conseguimos conectar ao PokéBonk', fr: 'Impossible de joindre PokéBonk',
     ja: 'PokéBonkに接続できません', zh: '无法连接到 PokéBonk', zht: '無法連線到 PokéBonk', ko: 'PokéBonk에 연결할 수 없습니다', ru: 'Не удаётся подключиться к PokéBonk',
     de: 'PokéBonk ist nicht erreichbar',
+    it: 'Impossibile connettersi a PokéBonk',
   },
   offBody: {
     es: 'Tu progreso se guarda en el servidor, así que el juego necesita conexión. Comprueba tu internet; si estás conectado, puede que estemos actualizando: vuelve a intentarlo en un momento.',
@@ -73,8 +79,9 @@ const T = {
     ko: '진행 상황은 서버에 저장되므로 게임에는 연결이 필요합니다. 인터넷을 확인하세요. 연결되어 있다면 업데이트 중일 수 있으니 잠시 후 다시 시도하세요.',
     ru: 'Прогресс хранится на сервере, поэтому игре нужно подключение. Проверьте интернет; если вы в сети, возможно, идёт обновление: попробуйте ещё раз чуть позже.',
     de: 'Dein Fortschritt wird auf dem Server gespeichert, daher braucht das Spiel eine Verbindung. Prüfe dein Internet; wenn du online bist, aktualisieren wir vielleicht gerade: Versuche es gleich noch einmal.',
+    it: 'I tuoi progressi sono salvati sul server, quindi il gioco ha bisogno di una connessione. Controlla internet; se sei connesso, forse stiamo aggiornando: riprova tra poco.',
   },
-  retry: { es: 'Reintentar', en: 'Try again', pt: 'Tentar de novo', fr: 'Réessayer', ja: '再試行', zh: '重试', zht: '重試', ko: '다시 시도', ru: 'Повторить', de: 'Erneut versuchen' },
+  retry: { es: 'Reintentar', en: 'Try again', pt: 'Tentar de novo', fr: 'Réessayer', ja: '再試行', zh: '重试', zht: '重試', ko: '다시 시도', ru: 'Повторить', de: 'Erneut versuchen', it: 'Riprova' },
   crashed: {
     es: 'El juego se ha cerrado de forma inesperada. Lo conseguido en la partida se recupera al volver a entrar.',
     en: 'The game closed unexpectedly. What you earned in the run is recovered when you come back in.',
@@ -86,29 +93,34 @@ const T = {
     ko: '게임이 예기치 않게 종료되었습니다. 판에서 얻은 것은 다시 들어오면 복구됩니다.',
     ru: 'Игра неожиданно закрылась. Полученное в забеге восстановится, когда вы вернётесь.',
     de: 'Das Spiel wurde unerwartet geschlossen. Was du in der Runde erreicht hast, bekommst du beim nächsten Start zurück.',
+    it: 'Il gioco si è chiuso inaspettatamente. Quello che hai ottenuto nella partita viene recuperato quando rientri.',
   },
   // Loading screen (static/splash.html): what it says before the game can say it itself.
   connecting: {
     es: 'Conectando con PokéBonk…', en: 'Connecting to PokéBonk…', pt: 'Conectando ao PokéBonk…', fr: 'Connexion à PokéBonk…', ja: 'PokéBonkに接続中…',
     zh: '正在连接 PokéBonk…', zht: '正在連線到 PokéBonk…', ko: 'PokéBonk에 연결 중…', ru: 'Подключение к PokéBonk…',
     de: 'Verbinde mit PokéBonk…',
+    it: 'Connessione a PokéBonk…',
   },
   loadingGame: {
     es: 'Cargando el juego…', en: 'Loading the game…', pt: 'Carregando o jogo…', fr: 'Chargement du jeu…', ja: 'ゲームを読み込み中…',
     zh: '正在加载游戏…', zht: '正在載入遊戲…', ko: '게임 불러오는 중…', ru: 'Загрузка игры…',
     de: 'Spiel wird geladen…',
+    it: 'Caricamento del gioco…',
   },
   starting: {
     es: '¡Ya casi está!', en: 'Almost there!', pt: 'Quase lá!', fr: 'Presque prêt !', ja: 'もうすぐです！',
     zh: '马上就好！', zht: '馬上就好！', ko: '거의 다 됐어요!', ru: 'Почти готово!',
     de: 'Gleich geht’s los!',
+    it: 'Ci siamo quasi!',
   },
-  tip: { es: 'Consejo', en: 'Tip', pt: 'Dica', fr: 'Astuce', ja: 'ヒント', zh: '提示', zht: '提示', ko: '팁', ru: 'Совет', de: 'Tipp' },
+  tip: { es: 'Consejo', en: 'Tip', pt: 'Dica', fr: 'Astuce', ja: 'ヒント', zh: '提示', zht: '提示', ko: '팁', ru: 'Совет', de: 'Tipp', it: 'Consiglio' },
   // Graphics backend (Ajustes → Pantalla → Motor gráfico) gone wrong: the GPU process kept crashing.
   gpuTitle: {
     es: 'La tarjeta gráfica está fallando', en: 'The graphics card keeps failing', pt: 'A placa de vídeo está falhando', fr: 'La carte graphique plante',
     ja: 'グラフィックカードでエラーが続いています', zh: '显卡反复出错', zht: '顯示卡反覆出錯', ko: '그래픽 카드 오류가 계속됩니다', ru: 'Видеокарта даёт сбои',
     de: 'Die Grafikkarte macht Probleme',
+    it: 'La scheda video continua a dare errori',
   },
   gpuBody: {
     es: 'El juego ha perdido la tarjeta gráfica varias veces. Probar otro motor gráfico ({b}) suele arreglarlo con algunos drivers. Se puede cambiar cuando quieras en Ajustes → Pantalla.',
@@ -121,11 +133,13 @@ const T = {
     ko: '게임이 그래픽 카드를 여러 번 잃었습니다. 다른 그래픽 엔진({b})으로 바꾸면 일부 드라이버에서 해결됩니다. 설정 → 화면에서 언제든 바꿀 수 있습니다.',
     ru: 'Игра несколько раз теряла видеокарту. Другой графический движок ({b}) часто помогает с некоторыми драйверами. Его можно сменить в любой момент: Настройки → Экран.',
     de: 'Das Spiel hat die Grafikkarte mehrmals verloren. Ein anderes Grafik-Backend ({b}) behebt das bei manchen Treibern meistens. Du kannst es jederzeit unter Einstellungen → Anzeige ändern.',
+    it: 'Il gioco ha perso la scheda video più volte. Provare un altro motore grafico ({b}) di solito risolve il problema con alcuni driver. Puoi cambiarlo quando vuoi in Impostazioni → Schermo.',
   },
   gpuTry: {
     es: 'Probar y reiniciar', en: 'Try it and restart', pt: 'Testar e reiniciar', fr: 'Essayer et redémarrer', ja: '試して再起動',
     zh: '尝试并重启', zht: '嘗試並重新啟動', ko: '적용하고 재시작', ru: 'Попробовать и перезапустить',
     de: 'Ausprobieren und neu starten',
+    it: 'Prova e riavvia',
   },
 } satisfies Record<string, Record<Lang, string>>;
 
@@ -257,6 +271,18 @@ const TIPS: Record<Lang, string[]> = {
     '„Speichern und beenden“ im Pausenmenü sichert eine Solo-Runde, damit du sie an einem anderen Tag fortsetzen kannst.',
     'Koop ist für 2 bis 4 Trainer: Lade Freunde ein oder nutze „Runde suchen“.',
     'F11 wechselt zwischen Fenster und Vollbild. Mehr Optionen unter Einstellungen → Anzeige.',
+  ],
+  it: [
+    'Premi R quando la tua Ultimate è carica: si ricarica combattendo.',
+    'Le Poké Ball sulla mappa contengono strumenti: aprile con E.',
+    'Scivola con Shift per schivare gli attacchi potenti dei boss.',
+    'Resta nel cerchio di un altare per caricare la sua benedizione.',
+    'Ogni zona finisce con il suo guardiano: sconfiggilo per aprire il portale.',
+    'Tieni premuto il salto per planare e salire sugli altipiani.',
+    'Supera la sfida di un Pokémon della Lega e catturalo per giocare con lui.',
+    '«Salva ed esci» nel menu di pausa salva una partita in solitaria per continuarla un altro giorno.',
+    'La cooperativa è da 2 a 4 allenatori: invita i tuoi amici o usa «Cerca partita».',
+    'F11 alterna finestra e schermo intero. Altre opzioni in Impostazioni → Schermo.',
   ],
 };
 export const tips = (l: Lang) => TIPS[l];

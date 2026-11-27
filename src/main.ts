@@ -46,7 +46,7 @@ app.commandLine.appendSwitch('js-flags', '--max-old-space-size=4096');
  * V-Sync is a Chromium switch, so it applies on the next launch: off, frames are not tied to the monitor
  * (more FPS than its refresh, with tearing) and the game's «Límite de FPS» is the only cap.
  */
-type ClientCfg = { vsync: boolean; angle: Angle; lastArt?: string; discord: boolean };
+type ClientCfg = { vsync: boolean; angle: Angle; angleTrial?: number; lastArt?: string; discord: boolean; lang?: string };
 const cfgFile = () => join(app.getPath('userData'), 'client.json');
 const CFG0: ClientCfg = { vsync: true, angle: 'auto', discord: true };
 function readCfg(): ClientCfg {
@@ -65,9 +65,9 @@ function writeCfg(p: Partial<ClientCfg>) {
  * fine with another. A Chromium switch, so it applies on the next launch, like V-Sync.
  */
 type Angle = 'auto' | 'd3d11' | 'gl' | 'vulkan' | 'metal';
-const ANGLES: Angle[] = process.platform === 'win32' ? ['auto', 'd3d11', 'gl', 'vulkan'] : process.platform === 'darwin' ? ['auto', 'metal', 'gl'] : ['auto', 'gl', 'vulkan'];
+const ANGLES: Angle[] = process.platform === 'win32' ? ['auto', 'd3d11', 'gl', 'vulkan'] : process.platform === 'darwin' ? ['auto', 'metal'] : ['auto', 'gl', 'vulkan'];
 /** The backend to offer after the GPU process keeps crashing with the current one. */
-const angleFallback = (a: Angle): Angle => (process.platform === 'win32' ? (a === 'gl' ? 'd3d11' : 'gl') : process.platform === 'darwin' ? (a === 'gl' ? 'metal' : 'gl') : (a === 'vulkan' ? 'gl' : 'vulkan'));
+const angleFallback = (a: Angle): Angle => (process.platform === 'win32' ? (a === 'gl' ? 'd3d11' : 'gl') : process.platform === 'darwin' ? (a === 'metal' ? 'auto' : 'metal') : (a === 'vulkan' ? 'gl' : 'vulkan'));
 const ANGLE_NAMES: Record<Angle, string> = { auto: 'Auto', d3d11: 'Direct3D 11', gl: 'OpenGL', vulkan: 'Vulkan', metal: 'Metal' };
 
 /**
@@ -86,9 +86,43 @@ function linuxNeedsNoSandbox() {
   // An AppImage on a system with an old kernel without user namespaces at all.
   return !!process.env.APPIMAGE && !existsSync('/proc/self/ns/user');
 }
-if (linuxNeedsNoSandbox() || process.argv.includes('--no-sandbox')) app.commandLine.appendSwitch('no-sandbox');
+/**
+ * It has to be on the real command line. Chromium starts its zygote (the process every page is forked from, already inside the namespace
+ * sandbox) before this file runs, so `appendSwitch('no-sandbox')` from here (1.3.0 and 1.4.0) reached the children's command lines but
+ * not the zygote: on Ubuntu 24.04+ with the .deb, every renderer died at once with «Creating shared memory in /dev/shm failed: No such
+ * process» and the window stayed black, while `PokeBonk --no-sandbox` typed by hand worked (pokebonk-app issue #9, Ubuntu 24.04 and
+ * 26.04). So the client starts itself again with the flag: one extra launch of a few hundred ms, only on those systems. An AppImage is
+ * relaunched from its file (`APPIMAGE`): its mount goes away when this process ends.
+ */
+const RELAUNCH_NO_SANDBOX = linuxNeedsNoSandbox() && !process.argv.includes('--no-sandbox');
+if (RELAUNCH_NO_SANDBOX) {
+  app.relaunch({ execPath: process.env.APPIMAGE || process.execPath, args: [...process.argv.slice(1), '--no-sandbox'] });
+  app.exit(0);
+}
+if (process.argv.includes('--no-sandbox')) app.commandLine.appendSwitch('no-sandbox');
 
-const launchCfg = readCfg();
+let launchCfg = readCfg();
+// A backend the player picked is on trial until the game has run for a while with it (`angleTrialOk`): if the last launch with it ended
+// before that (a black window with no way to reach Ajustes, a GPU process that dies at once: report 32521, «with Direct3D, Vulkan or
+// OpenGL the screen stays black, only Automático works»), this launch goes back to Automático and the choice is cleared.
+if (launchCfg.angle !== 'auto') {
+  if (launchCfg.angleTrial) { writeCfg({ angle: 'auto', angleTrial: 0 }); launchCfg = { ...launchCfg, angle: 'auto', angleTrial: 0 }; }
+  else writeCfg({ angleTrial: Date.now() });
+}
+/**
+ * Confirms the trial. Not while the game is on its «No conseguimos arrancar el 3D» screen (`.gl-help`): a backend that can't make a
+ * WebGL context doesn't crash, it leaves that screen at every launch (pokebonk-app issue #11, Vulkan on Linux), so closing the client
+ * from there goes back to Automático like a black window does. Checked again every 25 s until it holds.
+ */
+const angleTrialOk = () => {
+  if (launchCfg.angle === 'auto') return;
+  const wc = win && !win.isDestroyed() ? win.webContents : null;
+  if (!wc) return void setTimeout(angleTrialOk, 25000).unref?.();
+  void wc.executeJavaScript(`!!document.querySelector('.gl-help')`, true).catch(() => true).then((bad) => {
+    if (bad) setTimeout(angleTrialOk, 25000).unref?.();
+    else writeCfg({ angleTrial: 0 });
+  });
+};
 // V-Sync stays on whatever the saved setting says (2026-10-31): with `disable-gpu-vsync` + `disable-frame-rate-limit`
 // requestAnimationFrame fired thousands of times a second and the game crawled while the FPS counter said hundreds
 // (docs/DESKTOP.md). The web game no longer offers the option and switches old clients back on (src/core/desktop.ts).
@@ -120,7 +154,7 @@ app.setName('PokéBonk');
 if (process.platform === 'win32') app.setAppUserModelId('com.pokebonk.desktop');
 
 // One window: a second launch brings the first one forward (two would share the same save and fight over it).
-if (!SELFTEST && !app.requestSingleInstanceLock()) app.exit(0);
+if (!SELFTEST && !RELAUNCH_NO_SANDBOX && !app.requestSingleInstanceLock()) app.exit(0);
 
 // ---------------- window state ----------------
 type WinState = { x?: number; y?: number; width: number; height: number; maximized?: boolean; fullscreen?: boolean };
@@ -147,8 +181,20 @@ function saveState(win: BrowserWindow) {
 
 /** The language the game shows (its <html lang>), else the system's. */
 async function langNow(wc: WebContents | undefined): Promise<Lang> {
-  try { if (wc && !wc.isDestroyed()) return langOf(await wc.executeJavaScript('document.documentElement.lang', true)); } catch { /* page not ready */ }
-  return langOf(app.getPreferredSystemLanguages()[0] ?? app.getLocale());
+  try {
+    if (wc && !wc.isDestroyed()) {
+      const l = langOf(await wc.executeJavaScript('document.documentElement.lang', true));
+      // Remembered for the next launch: the loading screen shows before the page can tell its language.
+      if (readCfg().lang !== l) writeCfg({ lang: l });
+      return l;
+    }
+  } catch { /* page not ready */ }
+  return startLang();
+}
+/** Language for the loading screen: the one the game showed last time, else the system's. */
+function startLang(): Lang {
+  const saved = readCfg().lang;
+  return saved ? langOf(saved) : langOf(app.getPreferredSystemLanguages()[0] ?? app.getLocale());
 }
 
 // ---------------- the window ----------------
@@ -180,7 +226,7 @@ function createWindow() {
   if (st.maximized) w.maximize();
   // The loading screen goes up at once (a local page), and the window shows with it: no blank window while
   // pokebonk.com answers. Without it (self-test), the window shows with the game's first paint.
-  if (SPLASH) showSplash(w, langOf(app.getPreferredSystemLanguages()[0] ?? app.getLocale()), () => w.show());
+  if (SPLASH) showSplash(w, startLang(), () => w.show());
   else w.once('ready-to-show', () => w.show());
   // Every load of the game (reload, recovery after a crash) gets the loading screen again, until its menu is up.
   wc.on('did-start-navigation', (d) => {
@@ -234,7 +280,7 @@ function createWindow() {
 
   // Leaving during a run: the game's beforeunload asks, and Electron shows nothing by itself. Our own dialog.
   // The handler must answer at once (no await), so the game's language is kept up to date beforehand.
-  let lang: Lang = langOf(app.getPreferredSystemLanguages()[0] ?? app.getLocale());
+  let lang: Lang = startLang();
   const readLang = () => { void langNow(wc).then((l) => { lang = l; }); };
   wc.on('did-finish-load', readLang);
   w.on('focus', readLang);
@@ -574,7 +620,7 @@ function selftest(w: BrowserWindow, dir: string) {
     // `--selftest-js=<file>`: an async function body run in the page (with `npm run dev`, window.pokebonk is the App).
     const js = arg('selftest-js');
     const script = js ? await w.webContents.executeJavaScript(`(async () => { ${readFileSync(js, 'utf8')} })()`, true).catch((e) => ({ error: String(e) })) : undefined;
-    const report = { splashGoneMs, script, version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, url: w.webContents.getURL(),
+    const report = { splashGoneMs, script, version: app.getVersion(), noSandbox: app.commandLine.hasSwitch('no-sandbox'), electron: process.versions.electron, chrome: process.versions.chrome, url: w.webContents.getURL(),
       gpuFeatures: app.getGPUFeatureStatus(), gpu: await app.getGPUInfo('complete').then((g: any) => ({ active: g.gpuDevice?.find((d: any) => d.active)?.deviceString, gl: g.auxAttributes?.glImplementationParts })).catch(() => null), webgl };
     writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2));
     writeFileSync(join(dir, 'screen.png'), (await w.webContents.capturePage()).toPNG());
@@ -595,6 +641,7 @@ app.whenReady().then(() => {
   permissions();
   watchGpu();
   createWindow();
+  setTimeout(angleTrialOk, 25000).unref?.();
   if (!SELFTEST) {
     presence.set(baseActivity(langOf(app.getPreferredSystemLanguages()[0] ?? app.getLocale())));
     presence.enable(readCfg().discord);

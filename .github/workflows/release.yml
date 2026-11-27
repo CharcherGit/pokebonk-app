@@ -59,6 +59,28 @@ jobs:
           wait $pid
           cat /tmp/st/report.json
           hdiutil detach /tmp/pb
+      # The Linux builds as players run them, on Ubuntu 24.04 (apparmor_restrict_unprivileged_userns = 1, like the players of issue #9): the
+      # .deb installed with apt and run from /opt as a normal user, and the AppImage, must load the game and quit by themselves. On that
+      # system the client starts itself again with --no-sandbox, so the check waits for the report file, not for the first process.
+      - name: Check the Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb > /dev/null
+          echo "apparmor_restrict_unprivileged_userns=$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo none)"
+          Xvfb :99 -screen 0 1280x720x24 & export DISPLAY=:99
+          check() {
+            local dir=$1; shift
+            "$@" --selftest="$dir" --selftest-wait=6000 > "$dir.log" 2>&1 &
+            for i in $(seq 1 120); do [ -f "$dir/report.json" ] && break; sleep 1; done
+            [ -f "$dir/report.json" ] || { echo "Self-test did not finish: $*"; tail -40 "$dir.log"; exit 1; }
+            sleep 2; cat "$dir/report.json"
+            grep -q '"url": "https://pokebonk.com/"' "$dir/report.json" || { echo "The game did not load: $*"; exit 1; }
+          }
+          sudo apt-get install -y -qq ./release/*-amd64.deb > /dev/null
+          check /tmp/st-deb "$(readlink -f /usr/bin/PokeBonk || ls /opt/*/PokeBonk | head -1)"
+          img=$(ls release/*-x86_64.AppImage | head -1); chmod +x "$img"
+          export APPIMAGE_EXTRACT_AND_RUN=1; check /tmp/st-appimage "$img"
       - uses: actions/upload-artifact@v4
         with:
           name: pokebonk-${{ runner.os }}
